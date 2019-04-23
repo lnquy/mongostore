@@ -42,8 +42,11 @@ func TestMongoStore(t *testing.T) {
 	}
 	defer dbsess.Close()
 
-	store := NewMongoStore(dbsess.DB("test").C("test_session"), 3600, true,
-		[]byte("secret-key"))
+	store, err := NewMongoStore(dbsess.DB("test").C("test_session"),true,
+		[][]byte{[]byte("secret-key")}, sessions.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	req, _ = http.NewRequest("GET", "http://localhost:8080/", nil)
 	rsp = httptest.NewRecorder()

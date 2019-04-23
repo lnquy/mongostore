@@ -36,30 +36,29 @@ type MongoStore struct {
 
 // NewMongoStore returns a new MongoStore.
 // Set ensureTTL to true let the database auto-remove expired object by maxAge.
-func NewMongoStore(c *mgo.Collection, maxAge int, ensureTTL bool,
-	keyPairs ...[]byte) *MongoStore {
+func NewMongoStore(c *mgo.Collection, ensureTTL bool, keyPairs [][]byte, opts sessions.Options) (*MongoStore, error) {
 	store := &MongoStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
-		Options: &sessions.Options{
-			Path:   "/",
-			MaxAge: maxAge,
-		},
+		Options: &opts,
 		Token: &CookieToken{},
 		coll:  c,
 	}
 
-	store.MaxAge(maxAge)
+	store.Options = &opts
 
 	if ensureTTL {
-		c.EnsureIndex(mgo.Index{
+		err := c.EnsureIndex(mgo.Index{
 			Key:         []string{"modified"},
 			Background:  true,
 			Sparse:      true,
-			ExpireAfter: time.Duration(maxAge) * time.Second,
+			ExpireAfter: time.Duration(opts.MaxAge) * time.Second,
 		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return store
+	return store, nil
 }
 
 // Get registers and returns a session for the given name and session store.
